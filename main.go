@@ -3,20 +3,31 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/t-tomalak/logrus-easy-formatter"
 )
+
+const timestampFormat = "2006-01-02 15:04:05.999 -0700 MST"
 
 type handler struct{}
 
 func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var logMessage strings.Builder
 	defer func() {
-		log.Println(logMessage.String())
+		log.Info(logMessage.String())
 	}()
-	fmt.Fprintf(&logMessage, "[%s] %s %s %s", time.Now().Local(), req.Proto, req.Method, req.Host)
+	fmt.Fprintf(
+		&logMessage, "[%s] %s %s %s",
+		time.Now().Local().Format(timestampFormat),
+		req.Proto,
+		req.Method,
+		req.Host,
+	)
 
 	if req.Method == http.MethodConnect {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -40,10 +51,20 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	io.Copy(w, res.Body)
 }
 
+func initLogger() {
+	log.SetOutput(os.Stdout)
+	log.SetFormatter(&easy.Formatter{
+		LogFormat: "%msg%\n",
+	})
+}
+
 func main() {
+
+	initLogger()
+
 	var h handler
 	err := http.ListenAndServe(":8080", &h)
 	if err != nil {
-		log.Fatalf("error: %s", err)
+		log.Fatalf("fatal error: %s", err)
 	}
 }
