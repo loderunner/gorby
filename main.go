@@ -22,10 +22,13 @@ func establishTunnel(host string, clientConn net.Conn) error {
 	}
 
 	forward := func(src, dst net.Conn) {
+		var err error
 		defer func() {
-			src.Close()
-			dst.Close()
-			log.Debugf("closed tunnel %s->%s", src.RemoteAddr(), dst.RemoteAddr())
+			if err != net.ErrWriteToConnected {
+				log.Debugf("closing tunnel %s->%s", src.RemoteAddr(), dst.RemoteAddr())
+				src.Close()
+				dst.Close()
+			}
 		}()
 
 		var buf [1024]byte
@@ -38,13 +41,14 @@ func establishTunnel(host string, clientConn net.Conn) error {
 				bytesWritten, writeErr = dst.Write(buf[:bytesRead])
 				log.Debugf("wrote %d bytes to %s", bytesWritten, dst.RemoteAddr())
 			}
-			for _, err := range []error{readErr, writeErr} {
+			for _, err = range []error{readErr, writeErr} {
 				if err != nil {
 					if netErr, ok := err.(net.Error); ok {
-						log.Debugf("network error: %s", err)
 						if !netErr.Temporary() {
+							log.Errorf("network error: %s", err)
 							return
 						}
+						log.Debugf("network error: %s", err)
 					} else {
 						if err != io.EOF {
 							log.Errorf("error: %s", err)
