@@ -25,7 +25,7 @@ func establishTunnel(host string, clientConn net.Conn) error {
 		defer func() {
 			src.Close()
 			dst.Close()
-			log.Debugf("closed connection from %s to %s", src.RemoteAddr(), dst.RemoteAddr())
+			log.Debugf("closed tunnel %s->%s", src.RemoteAddr(), dst.RemoteAddr())
 		}()
 
 		var buf [1024]byte
@@ -40,13 +40,15 @@ func establishTunnel(host string, clientConn net.Conn) error {
 			}
 			for _, err := range []error{readErr, writeErr} {
 				if err != nil {
-					log.Debugf("%s", err)
-					if err, ok := err.(net.Error); ok {
-						if !err.Temporary() {
+					if netErr, ok := err.(net.Error); ok {
+						log.Debugf("network error: %s", err)
+						if !netErr.Temporary() {
 							return
 						}
 					} else {
-						log.Error()
+						if err != io.EOF {
+							log.Errorf("error: %s", err)
+						}
 						return
 					}
 				}
@@ -115,6 +117,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func initLogger() {
+	log.SetLevel(log.DebugLevel)
 	log.SetOutput(os.Stdout)
 	log.SetFormatter(&easy.Formatter{
 		LogFormat: "%msg%\n",
