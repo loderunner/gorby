@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -12,7 +13,52 @@ import (
 	"github.com/t-tomalak/logrus-easy-formatter"
 )
 
-const timestampFormat = "2006-01-02 15:04:05.999 -0700 MST"
+const timestampFormat = "2006-01-02 15:04:05 -0700 MST"
+
+func establishTunnel(host string, clientConn net.Conn) error {
+	serverConn, err := net.Dial("tcp", host)
+	if err != nil {
+		return err
+	}
+
+	forward := func(src, dst net.Conn) {
+		defer func() {
+			src.Close()
+			dst.Close()
+			log.Debugf("closed connection from %s to %s", src.RemoteAddr(), dst.RemoteAddr())
+		}()
+
+		var buf [1024]byte
+		for {
+			var writeErr error
+			bytesRead, readErr := src.Read(buf[:])
+			if bytesRead > 0 {
+				log.Debugf("read %d bytes from %s", bytesRead, src.RemoteAddr())
+				var bytesWritten int
+				bytesWritten, writeErr = dst.Write(buf[:bytesRead])
+				log.Debugf("wrote %d bytes to %s", bytesWritten, dst.RemoteAddr())
+			}
+			for _, err := range []error{readErr, writeErr} {
+				if err != nil {
+					log.Debugf("%s", err)
+					if err, ok := err.(net.Error); ok {
+						if !err.Temporary() {
+							return
+						}
+					} else {
+						log.Error()
+						return
+					}
+				}
+			}
+		}
+	}
+
+	go forward(clientConn, serverConn)
+	go forward(serverConn, clientConn)
+
+	return nil
+}
 
 type handler struct{}
 
@@ -30,7 +76,24 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	)
 
 	if req.Method == http.MethodConnect {
-		w.WriteHeader(http.StatusMethodNotAllowed)
+		h, ok := w.(http.Hijacker)
+		if !ok {
+			http.Error(w, "couldn't open TCP connection", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		conn, _, err := h.Hijack()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		conn.SetDeadline(time.Time{})
+		err = establishTunnel(req.Host, conn)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		return
 	}
 	res, err := http.DefaultTransport.RoundTrip(req)
