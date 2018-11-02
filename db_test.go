@@ -22,6 +22,11 @@ func newRequest() *http.Request {
 	return req
 }
 
+func newResponse() *http.Response {
+	resp := &http.Response{}
+	return resp
+}
+
 var tsReq = time.Now()
 var tsRes = tsReq.Add(20 * time.Millisecond)
 
@@ -59,7 +64,7 @@ func TestAddRequest(t *testing.T) {
 }
 
 func TestAddResponse(t *testing.T) {
-	ts := time.Date(2018, time.November, 2, 23, 38, 0, 0, time.UTC)
+	ts := time.Date(2018, time.November, 2, 23, 38, 0, int(20*time.Millisecond), time.UTC)
 	req := newRequest()
 	_, err := AddRequest(ts, req)
 	if err != nil {

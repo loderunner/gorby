@@ -102,22 +102,22 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		return
 	}
-	res, err := http.DefaultTransport.RoundTrip(req)
+	resp, err := http.DefaultTransport.RoundTrip(req)
 	if err != nil {
 		fmt.Fprintf(&logMessage, " - error: %s", err)
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
-	defer res.Body.Close()
+	defer resp.Body.Close()
 
-	fmt.Fprintf(&logMessage, " - %d %s %d", res.StatusCode, res.Status, res.ContentLength)
-	for k, h := range res.Header {
+	fmt.Fprintf(&logMessage, " - %d %s %d", resp.StatusCode, resp.Status, resp.ContentLength)
+	for k, h := range resp.Header {
 		for _, v := range h {
 			w.Header().Add(k, v)
 		}
 	}
-	w.WriteHeader(res.StatusCode)
-	io.Copy(w, res.Body)
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
 }
 
 func initLogger() {
