@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -73,13 +75,23 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		log.Info(logMessage.String())
 	}()
+	ts := time.Now().Local()
 	fmt.Fprintf(
 		&logMessage, "[%s] %s %s %s",
-		time.Now().Local().Format(timestampFormat),
+		ts.Format(timestampFormat),
 		req.Proto,
 		req.Method,
 		req.Host,
 	)
+
+	var reqID int64
+	reqBody, addErr := ioutil.ReadAll(req.Body)
+	if addErr == nil {
+		reqID, addErr = AddRequest(ts, req, ioutil.NopCloser(bytes.NewBuffer(reqBody)))
+	}
+	if addErr != nil {
+		log.Errorf("error adding request: %s", addErr)
+	}
 
 	if req.Method == http.MethodConnect {
 		h, ok := w.(http.Hijacker)
@@ -102,22 +114,30 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		return
 	}
+	req.Body = ioutil.NopCloser(bytes.NewBuffer(reqBody))
 	resp, err := http.DefaultTransport.RoundTrip(req)
 	if err != nil {
 		fmt.Fprintf(&logMessage, " - error: %s", err)
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
-	defer resp.Body.Close()
 
-	fmt.Fprintf(&logMessage, " - %d %s %d", resp.StatusCode, resp.Status, resp.ContentLength)
+	respBody, respErr := ioutil.ReadAll(resp.Body)
+	if respErr == nil {
+		_, respErr = AddResponse(ts, resp, ioutil.NopCloser(bytes.NewBuffer(respBody)), reqID)
+	}
+	if respErr != nil {
+		log.Errorf("error adding response: %s", respErr)
+	}
+
+	fmt.Fprintf(&logMessage, " - %s %d", resp.Status, resp.ContentLength)
 	for k, h := range resp.Header {
 		for _, v := range h {
 			w.Header().Add(k, v)
 		}
 	}
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	io.Copy(w, ioutil.NopCloser(bytes.NewBuffer(respBody)))
 }
 
 func initLogger() {
