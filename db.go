@@ -21,7 +21,7 @@ func init() {
 func initDB() {
 	// Create an in-memory SQLite store
 	var err error
-	db, err = sql.Open("sqlite3", ":memory:")
+	db, err = sql.Open("sqlite3", "/tmp/gorby.sqlite")
 	if err != nil {
 		panic(err.Error())
 	}
@@ -82,7 +82,7 @@ func AddResponse(ts time.Time, resp *http.Response, body io.ReadCloser, reqID in
 	}
 	res, err := db.Exec(
 		`INSERT INTO response (timestamp,proto,status,status_code,header,content_length,body,trailer,request) 
-        VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        VALUES (?,?,?,?,?,?,?,?,?)`,
 		ts,
 		resp.Proto,
 		resp.Status,
@@ -101,6 +101,7 @@ func AddResponse(ts time.Time, resp *http.Response, body io.ReadCloser, reqID in
 }
 
 const schemaSQL = `-- Table: request
+DROP TABLE IF EXISTS request;
 CREATE TABLE request (
     id             INTEGER  PRIMARY KEY
                             NOT NULL
@@ -118,6 +119,7 @@ CREATE TABLE request (
 
 
 -- Table: response
+DROP TABLE IF EXISTS response;
 CREATE TABLE response (
     id             INTEGER  PRIMARY KEY
                             UNIQUE
@@ -137,24 +139,28 @@ CREATE TABLE response (
 
 
 -- Index: idx_request_host
+DROP INDEX IF EXISTS idx_request_host;
 CREATE INDEX idx_request_host ON request (
     host
 );
 
 
 -- Index: idx_request_timestamp
+DROP INDEX IF EXISTS idx_request_timestamp;
 CREATE INDEX idx_request_timestamp ON request (
     timestamp
 );
 
 
 -- Index: idx_response_timestamp
+DROP INDEX IF EXISTS idx_response_timestamp;
 CREATE INDEX idx_response_timestamp ON response (
     timestamp
 );
 
 
 -- View: request_response
+DROP VIEW IF EXISTS request_response;
 CREATE VIEW request_response (
     [req.id],
     [req.timestamp],

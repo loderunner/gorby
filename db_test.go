@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -33,10 +34,12 @@ func newResponse() *http.Response {
 		"Content-Type: text/html; charset=UTF-8\r\n" +
 		"\r\n" +
 		"<html><body>Hello World!</body><html>"
-	resp, err := http.ReadResponse(bufio.NewReader(strings.NewReader(responseString)), nil)
+	reader := bufio.NewReader(strings.NewReader(responseString))
+	resp, err := http.ReadResponse(reader, nil)
 	if err != nil {
 		panic(err.Error())
 	}
+	resp.Body = ioutil.NopCloser(reader)
 	return resp
 }
 
