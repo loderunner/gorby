@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -32,17 +33,13 @@ func initDB() {
 	}
 }
 
-func AddRequest(ts time.Time, req *http.Request) (int64, error) {
+func AddRequest(ts time.Time, req *http.Request, body io.ReadCloser) (int64, error) {
 	header, err := json.Marshal(req.Header)
 	if err != nil {
 		return 0, fmt.Errorf("couldn't marshal request header: %s", err)
 	}
-	bodyReader, err := req.GetBody()
-	if err != nil {
-		return 0, fmt.Errorf("couldn't get request body: %s", err)
-	}
-	defer bodyReader.Close()
-	body, err := ioutil.ReadAll(bodyReader)
+	defer body.Close()
+	b, err := ioutil.ReadAll(body)
 	if err != nil {
 		return 0, fmt.Errorf("couldn't read request body: %s", err)
 	}
@@ -60,7 +57,7 @@ func AddRequest(ts time.Time, req *http.Request) (int64, error) {
 		req.URL.Path,
 		header,
 		req.ContentLength,
-		body,
+		b,
 		trailer,
 	)
 	if err != nil {
@@ -70,12 +67,12 @@ func AddRequest(ts time.Time, req *http.Request) (int64, error) {
 	return reqID, nil
 }
 
-func AddResponse(ts time.Time, resp *http.Response, reqID int64) (int64, error) {
+func AddResponse(ts time.Time, resp *http.Response, body io.ReadCloser, reqID int64) (int64, error) {
 	header, err := json.Marshal(resp.Header)
 	if err != nil {
 		return 0, fmt.Errorf("couldn't marshal response header: %s", err)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	b, err := ioutil.ReadAll(body)
 	if err != nil {
 		return 0, fmt.Errorf("couldn't read response body: %s", err)
 	}
@@ -92,7 +89,7 @@ func AddResponse(ts time.Time, resp *http.Response, reqID int64) (int64, error) 
 		resp.StatusCode,
 		header,
 		resp.ContentLength,
-		body,
+		b,
 		trailer,
 		reqID,
 	)

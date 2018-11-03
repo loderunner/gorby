@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"net/http"
 	"os"
 	"strconv"
@@ -10,12 +11,16 @@ import (
 )
 
 func newRequest() *http.Request {
-	req, err := http.NewRequest(
-		http.MethodPost,
-		"https://github.com/loderunner/gorby",
-		strings.NewReader(`{"message":"Hello World"}`),
-	)
-	req.Header.Add("Content-Type", "application/json")
+	requestString := "POST / HTTP/1.1\r\n" +
+		"Accept: application/json, */*\r\n" +
+		"Accept-Encoding: gzip, deflate\r\n" +
+		"Connection: keep-alive\r\n" +
+		"Content-Length: 27\r\n" +
+		"Content-Type: application/json\r\n" +
+		"Host: example.com\r\n" +
+		"\r\n" +
+		"{\"message\": \"Hello World!\"}"
+	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(requestString)))
 	if err != nil {
 		panic(err.Error())
 	}
@@ -23,7 +28,15 @@ func newRequest() *http.Request {
 }
 
 func newResponse() *http.Response {
-	resp := &http.Response{}
+	const responseString = "HTTP/1.1 200 OK\r\n" +
+		"Content-Length: 606\r\n" +
+		"Content-Type: text/html; charset=UTF-8\r\n" +
+		"\r\n" +
+		"<html><body>Hello World!</body><html>"
+	resp, err := http.ReadResponse(bufio.NewReader(strings.NewReader(responseString)), nil)
+	if err != nil {
+		panic(err.Error())
+	}
 	return resp
 }
 
@@ -57,7 +70,7 @@ func tearDown() {
 func TestAddRequest(t *testing.T) {
 	ts := time.Date(2018, time.November, 2, 23, 38, 0, 0, time.UTC)
 	req := newRequest()
-	_, err := AddRequest(ts, req)
+	_, err := AddRequest(ts, req, req.Body)
 	if err != nil {
 		t.Fatalf("couldn't add request to DB: %s", err)
 	}
@@ -65,9 +78,9 @@ func TestAddRequest(t *testing.T) {
 
 func TestAddResponse(t *testing.T) {
 	ts := time.Date(2018, time.November, 2, 23, 38, 0, int(20*time.Millisecond), time.UTC)
-	req := newRequest()
-	_, err := AddRequest(ts, req)
+	resp := newResponse()
+	_, err := AddResponse(ts, resp, resp.Body, 2)
 	if err != nil {
-		t.Fatalf("couldn't add request to DB: %s", err)
+		t.Fatalf("couldn't add response to DB: %s", err)
 	}
 }
