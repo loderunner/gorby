@@ -42,9 +42,17 @@ func AddRequest(req *Request) (int64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("couldn't marshal request trailer: %s", err)
 	}
+	query, err := json.Marshal(req.Query)
+	if err != nil {
+		return 0, fmt.Errorf("couldn't marshal request query variables: %s", err)
+	}
+	form, err := json.Marshal(req.Form)
+	if err != nil {
+		return 0, fmt.Errorf("couldn't marshal request form variables: %s", err)
+	}
 	res, err := db.Exec(
-		`INSERT INTO request (timestamp,proto,method,host,path,header,content_length,body,trailer) 
-        VALUES (?,?,?,?,?,?,?,?,?)`,
+		`INSERT INTO request (timestamp,proto,method,host,path,header,content_length,body,trailer,query,form) 
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
 		req.Timestamp,
 		req.Proto,
 		req.Method,
@@ -54,6 +62,8 @@ func AddRequest(req *Request) (int64, error) {
 		req.ContentLength,
 		req.Body,
 		trailer,
+		query,
+		form,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("SQL error: %s", err)
@@ -109,7 +119,9 @@ CREATE TABLE request (
     header         BLOB,
     content_length INTEGER  NOT NULL,
     body           BLOB,
-    trailer        BLOB
+	trailer        BLOB,
+	query          BLOB,
+	form           BLOB
 );
 
 

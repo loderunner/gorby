@@ -40,8 +40,8 @@ func setUp() {
 	db.Close()
 	initDB()
 
-	fixturesSQL := `INSERT INTO request (id,timestamp,proto,method,host,path,header,content_length,body,trailer)
-	VALUES (1,` + strconv.FormatInt(tsReq.Unix(), 10) + `,"HTTP/1.1","POST","https://example.com","/","[]",11,"Hello World",NULL);
+	fixturesSQL := `INSERT INTO request (id,timestamp,proto,method,host,path,header,content_length,body,trailer,query,form)
+	VALUES (1,` + strconv.FormatInt(tsReq.Unix(), 10) + `,"HTTP/1.1","POST","https://example.com","/","[]",11,"Hello World",NULL,NULL,NULL);
 	INSERT INTO response (id,timestamp,proto,status,status_code,header,content_length,body,trailer,request) 
 	VALUES (1,` + strconv.FormatInt(tsRes.Unix(), 10) + `,"HTTP/1.1","200 OK",200,"[]",11,"Hello World",NULL,1);`
 	_, err := db.Exec(fixturesSQL)
