@@ -75,10 +75,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		log.Info(logMessage.String())
 	}()
-	ts := time.Now().Local()
+	reqTS := time.Now().Local()
 	fmt.Fprintf(
 		&logMessage, "[%s] %s %s %s",
-		ts.Format(timestampFormat),
+		reqTS.Format(timestampFormat),
 		req.Proto,
 		req.Method,
 		req.Host,
@@ -88,7 +88,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var reqID int64
 	reqBody, addErr := ioutil.ReadAll(req.Body)
 	if addErr == nil {
-		r, addErr = NewRequest(ts, req, ioutil.NopCloser(bytes.NewBuffer(reqBody)))
+		r, addErr = NewRequest(reqTS, req, ioutil.NopCloser(bytes.NewBuffer(reqBody)))
 	}
 	if addErr != nil {
 		reqID, addErr = AddRequest(r)
@@ -125,10 +125,15 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
 		return
 	}
+	respTS := time.Now()
 
+	var r2 *Response
 	respBody, respErr := ioutil.ReadAll(resp.Body)
 	if respErr == nil {
-		_, respErr = AddResponse(ts, resp, ioutil.NopCloser(bytes.NewBuffer(respBody)), reqID)
+		r2, respErr = NewResponse(respTS, resp, ioutil.NopCloser(bytes.NewBuffer(respBody)))
+	}
+	if respErr == nil {
+		_, respErr = AddResponse(r2, reqID)
 	}
 	if respErr != nil {
 		log.Errorf("error adding response: %s", respErr)

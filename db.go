@@ -4,10 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -72,30 +68,31 @@ func AddRequest(req *Request) (int64, error) {
 	return reqID, nil
 }
 
-func AddResponse(ts time.Time, resp *http.Response, body io.ReadCloser, reqID int64) (int64, error) {
+func AddResponse(resp *Response, reqID int64) (int64, error) {
 	header, err := json.Marshal(resp.Header)
 	if err != nil {
 		return 0, fmt.Errorf("couldn't marshal response header: %s", err)
-	}
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		return 0, fmt.Errorf("couldn't read response body: %s", err)
 	}
 	trailer, err := json.Marshal(resp.Trailer)
 	if err != nil {
 		return 0, fmt.Errorf("couldn't marshal response trailer: %s", err)
 	}
+	form, err := json.Marshal(resp.Form)
+	if err != nil {
+		return 0, fmt.Errorf("couldn't marshal response form variables: %s", err)
+	}
 	res, err := db.Exec(
-		`INSERT INTO response (timestamp,proto,status,status_code,header,content_length,body,trailer,request) 
-        VALUES (?,?,?,?,?,?,?,?,?)`,
-		ts,
+		`INSERT INTO response (timestamp,proto,status,status_code,header,content_length,body,trailer,form,request) 
+        VALUES (?,?,?,?,?,?,?,?,?,?)`,
+		resp.Timestamp,
 		resp.Proto,
 		resp.Status,
 		resp.StatusCode,
 		header,
 		resp.ContentLength,
-		b,
+		resp.Body,
 		trailer,
+		form,
 		reqID,
 	)
 	if err != nil {
@@ -138,7 +135,8 @@ CREATE TABLE response (
     header         BLOB,
     content_length INTEGER  NOT NULL,
     body           BLOB,
-    trailer        BLOB,
+	trailer        BLOB,
+	form           BLOB,
     request        INTEGER  REFERENCES request (id) 
                             NOT NULL
                             UNIQUE

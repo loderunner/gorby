@@ -23,15 +23,6 @@ type Request struct {
 	Form          map[string][]string `json:"form"`
 }
 
-func copyMap(src map[string][]string) map[string][]string {
-	dst := make(map[string][]string)
-	for k, v := range src {
-		dst[k] = make([]string, len(v))
-		copy(dst[k], v)
-	}
-	return dst
-}
-
 func NewRequest(ts time.Time, req *http.Request, body io.ReadCloser) (*Request, error) {
 	r := &Request{
 		Timestamp:     ts,
