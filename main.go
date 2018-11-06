@@ -90,7 +90,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if addErr == nil {
 		r, addErr = NewRequest(reqTS, req, ioutil.NopCloser(bytes.NewBuffer(reqBody)))
 	}
-	if addErr != nil {
+	if addErr == nil {
 		reqID, addErr = AddRequest(r)
 	}
 	if addErr != nil {
