@@ -33,15 +33,10 @@ func initDB() {
 	}
 }
 
-func AddRequest(ts time.Time, req *http.Request, body io.ReadCloser) (int64, error) {
+func AddRequest(req *Request) (int64, error) {
 	header, err := json.Marshal(req.Header)
 	if err != nil {
 		return 0, fmt.Errorf("couldn't marshal request header: %s", err)
-	}
-	defer body.Close()
-	b, err := ioutil.ReadAll(body)
-	if err != nil {
-		return 0, fmt.Errorf("couldn't read request body: %s", err)
 	}
 	trailer, err := json.Marshal(req.Trailer)
 	if err != nil {
@@ -50,14 +45,14 @@ func AddRequest(ts time.Time, req *http.Request, body io.ReadCloser) (int64, err
 	res, err := db.Exec(
 		`INSERT INTO request (timestamp,proto,method,host,path,header,content_length,body,trailer) 
         VALUES (?,?,?,?,?,?,?,?,?)`,
-		ts,
+		req.Timestamp,
 		req.Proto,
 		req.Method,
 		req.Host,
-		req.URL.Path,
+		req.Path,
 		header,
 		req.ContentLength,
-		b,
+		req.Body,
 		trailer,
 	)
 	if err != nil {

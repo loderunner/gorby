@@ -11,23 +11,6 @@ import (
 	"time"
 )
 
-func newRequest() *http.Request {
-	requestString := "POST / HTTP/1.1\r\n" +
-		"Accept: application/json, */*\r\n" +
-		"Accept-Encoding: gzip, deflate\r\n" +
-		"Connection: keep-alive\r\n" +
-		"Content-Length: 27\r\n" +
-		"Content-Type: application/json\r\n" +
-		"Host: example.com\r\n" +
-		"\r\n" +
-		"{\"message\": \"Hello World!\"}"
-	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(requestString)))
-	if err != nil {
-		panic(err.Error())
-	}
-	return req
-}
-
 func newResponse() *http.Response {
 	const responseString = "HTTP/1.1 200 OK\r\n" +
 		"Content-Length: 606\r\n" +
@@ -57,10 +40,10 @@ func setUp() {
 	db.Close()
 	initDB()
 
-	fixturesSQL := `INSERT INTO request (timestamp,proto,method,host,path,header,content_length,body,trailer)
-	VALUES (` + strconv.FormatInt(tsReq.Unix(), 10) + `,"HTTP/1.1","POST","https://example.com","/","[]",11,"Hello World",NULL);
-	INSERT INTO response (timestamp,proto,status,status_code,header,content_length,body,trailer,request) 
-	VALUES (` + strconv.FormatInt(tsRes.Unix(), 10) + `,"HTTP/1.1","200 OK",200,"[]",11,"Hello World",NULL,1);`
+	fixturesSQL := `INSERT INTO request (id,timestamp,proto,method,host,path,header,content_length,body,trailer)
+	VALUES (1,` + strconv.FormatInt(tsReq.Unix(), 10) + `,"HTTP/1.1","POST","https://example.com","/","[]",11,"Hello World",NULL);
+	INSERT INTO response (id,timestamp,proto,status,status_code,header,content_length,body,trailer,request) 
+	VALUES (1,` + strconv.FormatInt(tsRes.Unix(), 10) + `,"HTTP/1.1","200 OK",200,"[]",11,"Hello World",NULL,1);`
 	_, err := db.Exec(fixturesSQL)
 	if err != nil {
 		panic(err.Error())
@@ -71,9 +54,8 @@ func tearDown() {
 }
 
 func TestAddRequest(t *testing.T) {
-	ts := time.Date(2018, time.November, 2, 23, 38, 0, 0, time.UTC)
-	req := newRequest()
-	_, err := AddRequest(ts, req, req.Body)
+	req := newTestRequest(tsReq)
+	_, err := AddRequest(req)
 	if err != nil {
 		t.Fatalf("couldn't add request to DB: %s", err)
 	}

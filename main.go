@@ -84,10 +84,14 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		req.Host,
 	)
 
+	var r *Request
 	var reqID int64
 	reqBody, addErr := ioutil.ReadAll(req.Body)
 	if addErr == nil {
-		reqID, addErr = AddRequest(ts, req, ioutil.NopCloser(bytes.NewBuffer(reqBody)))
+		r, addErr = NewRequest(ts, req, ioutil.NopCloser(bytes.NewBuffer(reqBody)))
+	}
+	if addErr != nil {
+		reqID, addErr = AddRequest(r)
 	}
 	if addErr != nil {
 		log.Errorf("error adding request: %s", addErr)
