@@ -12,10 +12,10 @@ import (
 
 func newTestHTTPResponse() *http.Response {
 	const responseString = "HTTP/1.1 200 OK\r\n" +
-		"Content-Length: 27\r\n" +
-		"Content-Type: application/json\r\n" +
+		"Content-Length: 20\r\n" +
+		"Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\n" +
 		"\r\n" +
-		"{\"message\": \"Hello World!\"}"
+		"message=Hello+World%21"
 	reader := bufio.NewReader(strings.NewReader(responseString))
 	resp, err := http.ReadResponse(reader, nil)
 	if err != nil {
@@ -31,14 +31,14 @@ func newTestResponse(ts time.Time) *Response {
 		Proto:         "HTTP/1.1",
 		Status:        "200 OK",
 		StatusCode:    http.StatusOK,
-		ContentLength: 27,
+		ContentLength: 20,
 		Header: map[string][]string{
-			"Content-Length": {"27"},
-			"Content-Type":   {"application/json"},
+			"Content-Length": {"20"},
+			"Content-Type":   {"application/x-www-form-urlencoded; charset=utf-8"},
 		},
-		Body:    []byte(`{"message": "Hello World!"}`),
+		Body:    []byte(`message=Hello+World%21`),
 		Trailer: nil,
-		Form:    nil,
+		Form:    map[string][]string{"message": {"Hello World!"}},
 	}
 	return r
 }
@@ -48,7 +48,7 @@ func TestNewResponse(t *testing.T) {
 	resp := newTestHTTPResponse()
 	r, err := NewResponse(ts, resp, resp.Body)
 	if err != nil {
-		t.Fatalf("error creating respuest: %s", err)
+		t.Fatalf("error creating response: %s", err)
 	}
 	expect := newTestResponse(ts)
 	if !reflect.DeepEqual(r, expect) {

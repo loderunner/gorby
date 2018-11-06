@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"net/url"
 	"time"
@@ -50,7 +51,9 @@ func NewRequest(ts time.Time, req *http.Request, body io.ReadCloser) (*Request, 
 		if err != nil {
 			return nil, fmt.Errorf("couldn't read request body: %s", err)
 		}
-		if ct := req.Header.Get("Content-Type"); ct == "application/x-www-form-urlencoded" {
+		ct := req.Header.Get("Content-Type")
+		mt, _, _ := mime.ParseMediaType(ct)
+		if mt == "application/x-www-form-urlencoded" {
 			r.Form, _ = url.ParseQuery(string(r.Body))
 		}
 	}
