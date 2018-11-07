@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
+	"os/signal"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/t-tomalak/logrus-easy-formatter"
@@ -19,9 +21,24 @@ func initLogger() {
 	})
 }
 
+func initSignals() {
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+
+		log.Infof("shutting down...")
+		err := proxyServer.Shutdown(context.Background())
+		if err != nil {
+			log.Errorf("error shutting down server: %s", err)
+		}
+	}()
+}
+
 func main() {
 
 	initLogger()
+	initSignals()
 
 	var g errgroup.Group
 
