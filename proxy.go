@@ -15,11 +15,22 @@ import (
 
 const timestampFormat = "2006-01-02 15:04:05 -0700 MST"
 
-func establishTunnel(host string, clientConn net.Conn) error {
-	serverConn, err := net.Dial("tcp", host)
+func establishTunnel(req *http.Request, clientConn net.Conn) error {
+	ctx := req.Context()
+	srv, ok := ctx.Value(http.ServerContextKey).(*http.Server)
+	if !ok {
+		return fmt.Errorf("couldn't get server from request")
+	}
+	serverConn, err := net.Dial("tcp", req.Host)
 	if err != nil {
 		return err
 	}
+
+	srv.RegisterOnShutdown(func() {
+		log.Debugf("shutting down hijacked connections")
+		clientConn.Close()
+		serverConn.Close()
+	})
 
 	forward := func(src, dst net.Conn) {
 		var err error
@@ -109,7 +120,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 
 		conn.SetDeadline(time.Time{})
-		err = establishTunnel(req.Host, conn)
+		err = establishTunnel(req, conn)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return

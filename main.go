@@ -6,7 +6,10 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/t-tomalak/logrus-easy-formatter"
+	"golang.org/x/sync/errgroup"
 )
+
+var proxyServer http.Server
 
 func initLogger() {
 	log.SetLevel(log.DebugLevel)
@@ -20,9 +23,17 @@ func main() {
 
 	initLogger()
 
-	var p Proxy
-	err := http.ListenAndServe(":8080", &p)
-	if err != nil {
+	var g errgroup.Group
+
+	g.Go(func() error {
+		proxyServer.Addr = ":8080"
+		proxyServer.Handler = &Proxy{}
+		err := proxyServer.ListenAndServe()
+		return err
+	})
+
+	err := g.Wait()
+	if err != nil && err != http.ErrServerClosed {
 		log.Fatalf("fatal error: %s", err)
 	}
 }
