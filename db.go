@@ -4,20 +4,22 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	log "github.com/sirupsen/logrus"
 )
 
 var db *sql.DB
 
 func init() {
-	initDB()
+	initDB("/tmp/gorby.sqlite")
 }
 
-func initDB() {
+func initDB(path string) {
 	// Create an in-memory SQLite store
 	var err error
-	db, err = sql.Open("sqlite3", "/tmp/gorby.sqlite")
+	db, err = sql.Open("sqlite3", path)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -102,6 +104,114 @@ func AddResponse(resp *Response, reqID int64) (int64, error) {
 	return respID, nil
 }
 
+func ListRequests(start, end time.Time) ([]*Request, []*Response, error) {
+	res, err := db.Query(
+		`SELECT * FROM request_response 
+		WHERE [req.timestamp] > ? AND [req.timestamp] <= ?`,
+		start, end,
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("SQL error: %s", err)
+	}
+	defer res.Close()
+
+	reqs := make([]*Request, 0)
+	resps := make([]*Response, 0)
+	for res.Next() {
+		var req Request
+		var resp Response
+
+		var reqID, respID sql.NullInt64
+		var reqHeader, reqTrailer, reqQuery, reqForm, respHeader, respTrailer, respForm []byte
+		err = res.Scan(
+			&reqID,
+			&req.Timestamp,
+			&req.Proto,
+			&req.Method,
+			&req.Host,
+			&req.Path,
+			&reqHeader,
+			&req.ContentLength,
+			&req.Body,
+			&reqTrailer,
+			&reqQuery,
+			&reqForm,
+			&respID,
+			&resp.Timestamp,
+			&resp.Proto,
+			&resp.Status,
+			&resp.StatusCode,
+			&respHeader,
+			&resp.ContentLength,
+			&resp.Body,
+			&respTrailer,
+			&respForm,
+		)
+
+		if err != nil {
+			log.Warningf("couldn't scan row: %s", err)
+			continue
+		}
+
+		if reqHeader != nil {
+			err = json.Unmarshal(reqHeader, &req.Header)
+			if err != nil {
+				log.Warningf("couldn't unmarshal request header: %s", err)
+			}
+		}
+		if reqTrailer != nil {
+			err = json.Unmarshal(reqTrailer, &req.Trailer)
+			if err != nil {
+				log.Warningf("couldn't unmarshal request trailer: %s", err)
+			}
+		}
+		if reqQuery != nil {
+			err = json.Unmarshal(reqQuery, &req.Query)
+			if err != nil {
+				log.Warningf("couldn't unmarshal request query variables: %s", err)
+			}
+		}
+		if reqForm != nil {
+			err = json.Unmarshal(reqForm, &req.Form)
+			if err != nil {
+				log.Warningf("couldn't unmarshal request form variables: %s", err)
+			}
+		}
+		reqs = append(reqs, &req)
+
+		if respID.Valid {
+			if respHeader != nil {
+				err = json.Unmarshal(respHeader, &resp.Header)
+				if err != nil {
+					log.Warningf("couldn't read response header: %s", err)
+				}
+			}
+			if respTrailer != nil {
+				err = json.Unmarshal(respTrailer, &resp.Trailer)
+				if err != nil {
+					log.Warningf("couldn't unmarshal response trailer: %s", err)
+				}
+			}
+			if respForm != nil {
+				err = json.Unmarshal(respForm, &resp.Form)
+				if err != nil {
+					log.Warningf("couldn't unmarshal response query variables: %s", err)
+				}
+			}
+			resps = append(resps, &resp)
+		} else {
+			resps = append(resps, nil)
+		}
+
+	}
+
+	if err := res.Err(); err != nil {
+		return nil, nil, fmt.Errorf("row error: %s", err)
+	}
+
+	return reqs, resps, nil
+}
+
 const schemaSQL = `-- Table: request
 DROP TABLE IF EXISTS request;
 CREATE TABLE request (
@@ -176,15 +286,19 @@ CREATE VIEW request_response (
     [req.header],
     [req.content_length],
     [req.body],
-    [req.trailer],
+	[req.trailer],
+	[req.query],
+	[req.form],
     [res.id],
     [res.timestamp],
     [res.proto],
     [res.status],
     [res.status_code],
-    [res.header],
+	[res.header],
+	[res.content_length],
     [res.body],
-    [res.trailer]
+	[res.trailer],
+	[res.form]
 )
 AS
     SELECT req.id,
@@ -196,15 +310,19 @@ AS
            req.header,
            req.content_length,
            req.body,
-           req.trailer,
+		   req.trailer,
+		   req.query,
+		   req.form,
            res.id,
            res.timestamp,
            res.proto,
            res.status,
            res.status_code,
-           res.header,
+		   res.header,
+		   res.content_length,
            res.body,
-           res.trailer
+		   res.trailer,
+		   res.form
       FROM request AS req
            LEFT OUTER JOIN
            response AS res ON req.id = res.request
