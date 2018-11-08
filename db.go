@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -29,6 +30,23 @@ func initDB(path string) {
 	if err != nil {
 		panic(err.Error())
 	}
+}
+
+type nullTime struct {
+	time  time.Time
+	valid bool
+}
+
+func (nt *nullTime) Scan(value interface{}) error {
+	nt.time, nt.valid = value.(time.Time)
+	return nil
+}
+
+func (nt nullTime) Value() (driver.Value, error) {
+	if !nt.valid {
+		return nil, nil
+	}
+	return nt.time, nil
 }
 
 func AddRequest(req *Request) (int64, error) {
@@ -123,6 +141,10 @@ func ListRequests(start, end time.Time) ([]*Request, []*Response, error) {
 
 		var reqID, respID sql.NullInt64
 		var reqHeader, reqTrailer, reqQuery, reqForm, respHeader, respTrailer, respForm []byte
+		var respTS nullTime
+		var respProto, respStatus sql.NullString
+		var respStatusCode, respContentLength sql.NullInt64
+
 		err = res.Scan(
 			&reqID,
 			&req.Timestamp,
@@ -137,12 +159,12 @@ func ListRequests(start, end time.Time) ([]*Request, []*Response, error) {
 			&reqQuery,
 			&reqForm,
 			&respID,
-			&resp.Timestamp,
-			&resp.Proto,
-			&resp.Status,
-			&resp.StatusCode,
+			&respTS,
+			&respProto,
+			&respStatus,
+			&respStatusCode,
 			&respHeader,
-			&resp.ContentLength,
+			&respContentLength,
 			&resp.Body,
 			&respTrailer,
 			&respForm,
@@ -180,6 +202,36 @@ func ListRequests(start, end time.Time) ([]*Request, []*Response, error) {
 		reqs = append(reqs, &req)
 
 		if respID.Valid {
+			if respTS.valid {
+				resp.Timestamp = respTS.time
+			} else {
+				log.Warningf("invalid response timestamp")
+				continue
+			}
+			if respProto.Valid {
+				resp.Proto = respProto.String
+			} else {
+				log.Warningf("invalid response proto")
+				continue
+			}
+			if respStatus.Valid {
+				resp.Status = respStatus.String
+			} else {
+				log.Warningf("invalid response status")
+				continue
+			}
+			if respStatusCode.Valid {
+				resp.StatusCode = int(respStatusCode.Int64)
+			} else {
+				log.Warningf("invalid response status code")
+				continue
+			}
+			if respContentLength.Valid {
+				resp.ContentLength = respContentLength.Int64
+			} else {
+				log.Warningf("invalid response content length")
+				continue
+			}
 			if respHeader != nil {
 				err = json.Unmarshal(respHeader, &resp.Header)
 				if err != nil {

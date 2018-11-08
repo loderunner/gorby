@@ -131,3 +131,39 @@ func TestListRequests(t *testing.T) {
 		t.Errorf("expected response %#v, got %#v", expectedResp, *resps[0])
 	}
 }
+
+func TestListRequestsWithoutResponse(t *testing.T) {
+	log.AddHook(newTestHook(t))
+	defer log.StandardLogger().ReplaceHooks(log.LevelHooks{})
+
+	ts := time.Now()
+	req := newTestRequest(ts)
+	_, err := AddRequest(req)
+	if err != nil {
+		t.Fatalf("couldn't add request to DB: %s", err)
+	}
+
+	reqs, resps, err := ListRequests(time.Time{}, time.Unix(9999999999, 0))
+	if err != nil {
+		t.Fatalf("couldn't list requests: %s", err)
+	}
+	if len(reqs) == 0 {
+		t.Fatalf("no requests")
+	}
+	if len(resps) == 0 {
+		t.Fatalf("no responses")
+	}
+
+	if !ts.Equal(reqs[len(reqs)-1].Timestamp) {
+		t.Errorf("expected request timestamp %s, got %s", ts, reqs[len(reqs)-1].Timestamp)
+	}
+	req.Timestamp = time.Time{}
+	reqs[len(reqs)-1].Timestamp = time.Time{}
+	if !reflect.DeepEqual(reqs[len(reqs)-1], req) {
+		t.Errorf("expected request %#v, got %#v", req, reqs[len(reqs)-1])
+	}
+
+	if resps[len(resps)-1] != nil {
+		t.Errorf("expected response <nil>, got %#v", resps[len(resps)-1])
+	}
+}
