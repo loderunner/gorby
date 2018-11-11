@@ -82,7 +82,7 @@ func TestListRequests(t *testing.T) {
 	log.AddHook(newTestHook(t))
 	defer log.StandardLogger().ReplaceHooks(log.LevelHooks{})
 
-	reqs, resps, err := ListRequests(time.Time{}, time.Unix(9999999999, 0))
+	reqs, resps, err := ListRequests(time.Time{}, time.Unix(9999999999, 0), -1)
 	if err != nil {
 		t.Fatalf("couldn't list requests: %s", err)
 	}
@@ -143,7 +143,7 @@ func TestListRequestsWithoutResponse(t *testing.T) {
 		t.Fatalf("couldn't add request to DB: %s", err)
 	}
 
-	reqs, resps, err := ListRequests(time.Time{}, time.Unix(9999999999, 0))
+	reqs, resps, err := ListRequests(time.Time{}, time.Unix(9999999999, 0), -1)
 	if err != nil {
 		t.Fatalf("couldn't list requests: %s", err)
 	}

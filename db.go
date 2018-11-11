@@ -122,11 +122,12 @@ func AddResponse(resp *Response, reqID int64) (int64, error) {
 	return respID, nil
 }
 
-func ListRequests(start, end time.Time) ([]*Request, []*Response, error) {
+func ListRequests(start, end time.Time, limit int64) ([]*Request, []*Response, error) {
 	res, err := db.Query(
 		`SELECT * FROM request_response 
-		WHERE [req.timestamp] > ? AND [req.timestamp] <= ?`,
-		start, end,
+		WHERE [req.timestamp] > ? AND [req.timestamp] <= ?
+		LIMIT ?`,
+		start, end, limit,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("SQL error: %s", err)
