@@ -11,7 +11,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var proxyServer http.Server
+var proxyServer, apiServer http.Server
 
 func initLogger() {
 	log.SetLevel(log.DebugLevel)
@@ -30,7 +30,11 @@ func initSignals() {
 		log.Infof("shutting down...")
 		err := proxyServer.Shutdown(context.Background())
 		if err != nil {
-			log.Errorf("error shutting down server: %s", err)
+			log.Errorf("error shutting down proxy server: %s", err)
+		}
+		err = apiServer.Shutdown(context.Background())
+		if err != nil {
+			log.Errorf("error shutting down API server: %s", err)
 		}
 	}()
 }
@@ -46,6 +50,13 @@ func main() {
 		proxyServer.Addr = ":8080"
 		proxyServer.Handler = &Proxy{}
 		err := proxyServer.ListenAndServe()
+		return err
+	})
+
+	g.Go(func() error {
+		apiServer.Addr = ":8081"
+		apiServer.Handler = NewAPIHandler()
+		err := apiServer.ListenAndServe()
 		return err
 	})
 
