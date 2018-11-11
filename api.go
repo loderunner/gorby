@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -38,8 +39,8 @@ func HandleListRequests(w http.ResponseWriter, req *http.Request) {
 	} else {
 		startTime, err = time.Parse(time.RFC3339Nano, startStr)
 		if err != nil {
-			fmt.Fprintf(w, "invalid start time")
 			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "invalid start time")
 			return
 		}
 	}
@@ -51,13 +52,24 @@ func HandleListRequests(w http.ResponseWriter, req *http.Request) {
 	} else {
 		endTime, err = time.Parse(time.RFC3339Nano, endStr)
 		if err != nil {
-			fmt.Fprintf(w, "invalid end time")
 			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "invalid end time")
 			return
 		}
 	}
 
-	requests, responses, err := ListRequests(startTime, endTime)
+	limitStr := req.FormValue("limit")
+	var limit int64 = -1
+	if len(limitStr) > 0 {
+		limit, err = strconv.ParseInt(limitStr, 10, 64)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "invalid limit")
+			return
+		}
+	}
+
+	requests, responses, err := ListRequests(startTime, endTime, limit)
 	if err != nil {
 		log.Errorf("couldn't get requests and responses: %s", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
