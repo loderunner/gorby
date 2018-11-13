@@ -32,6 +32,23 @@ func HandleListRequests(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	var flusher http.Flusher
+	accept := req.Header.Get("Accept")
+	if accept == "text/event-stream" {
+		var ok bool
+		flusher, ok = w.(http.Flusher)
+		if !ok {
+			log.Error("cannot stream response")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+	}
+
 	startStr := req.FormValue("start")
 	var startTime time.Time
 	if len(startStr) == 0 {
@@ -86,12 +103,50 @@ func HandleListRequests(w http.ResponseWriter, req *http.Request) {
 		requestResponses[i].Response = responses[i]
 	}
 
-	b, err := json.Marshal(requestResponses)
-	if err != nil {
-		log.Errorf("couldn't marshal requests and responses: %s", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+	if accept == "text/event-stream" {
+		flusher.Flush()
+		HandleStreamRequests(w, req, flusher, requestResponses)
+	} else {
+		b, err := json.Marshal(requestResponses)
+		if err != nil {
+			log.Errorf("couldn't marshal requests and responses: %s", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		w.Write(b)
+	}
+}
+
+func HandleStreamRequests(w http.ResponseWriter, req *http.Request, f http.Flusher, requestResponses []requestResponse) {
+	log.Debugf("handling server-sent event stream")
+
+	closer, ok := w.(http.CloseNotifier)
+	if !ok {
+		log.Warning("couldn't notify connection closed by client")
 		return
 	}
 
-	w.Write(b)
+	for _, rr := range requestResponses {
+		b, err := json.Marshal(rr)
+		if err != nil {
+			log.Errorf("couldn't marshal request and response: %s", err)
+			continue
+		}
+		w.Write([]byte("data:"))
+		w.Write(b)
+		w.Write([]byte("\n\n"))
+		f.Flush()
+	}
+
+	for {
+		select {
+		case t := <-time.Tick(3 * time.Second):
+			fmt.Fprintf(w, "data: %s\n\n", t.Format(time.RFC3339))
+			log.Debugf("sending timestamp event %s", t)
+			f.Flush()
+		case <-closer.CloseNotify():
+			log.Debugf("closing")
+			return
+		}
+	}
 }
