@@ -48,7 +48,7 @@ func main() {
 
 	g.Go(func() error {
 		proxyServer.Addr = ":8080"
-		proxyServer.Handler = &Proxy{}
+		proxyServer.Handler = NewProxyHandler()
 		err := proxyServer.ListenAndServe()
 		return err
 	})

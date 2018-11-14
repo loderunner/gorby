@@ -19,7 +19,7 @@ func TestHandleListRequests(t *testing.T) {
 			t.Fatalf("expected %d, got %d", http.StatusOK, recorder.Code)
 		}
 
-		var res []requestResponse
+		var res []RequestResponse
 		err := json.Unmarshal(recorder.Body.Bytes(), &res)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)
@@ -39,7 +39,7 @@ func TestHandleListRequests(t *testing.T) {
 		if recorder.Code != http.StatusOK {
 			t.Errorf("expected %d, got %d", http.StatusOK, recorder.Code)
 		}
-		var res []requestResponse
+		var res []RequestResponse
 		err := json.Unmarshal(recorder.Body.Bytes(), &res)
 		if err != nil {
 			t.Errorf("unexpected error: %s", err)

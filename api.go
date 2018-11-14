@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type requestResponse struct {
+type RequestResponse struct {
 	Request  *Request  `json:"request"`
 	Response *Response `json:"response"`
 }
@@ -97,7 +97,7 @@ func HandleListRequests(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	requestResponses := make([]requestResponse, len(requests))
+	requestResponses := make([]RequestResponse, len(requests))
 	for i := 0; i < len(requests); i++ {
 		requestResponses[i].Request = requests[i]
 		requestResponses[i].Response = responses[i]
@@ -117,7 +117,7 @@ func HandleListRequests(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func HandleStreamRequests(w http.ResponseWriter, req *http.Request, f http.Flusher, requestResponses []requestResponse) {
+func HandleStreamRequests(w http.ResponseWriter, req *http.Request, f http.Flusher, requestResponses []RequestResponse) {
 	log.Debugf("handling server-sent event stream")
 
 	closer, ok := w.(http.CloseNotifier)

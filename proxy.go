@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -77,7 +78,14 @@ func establishTunnel(req *http.Request, clientConn net.Conn) error {
 	return nil
 }
 
-type Proxy struct{}
+type Proxy struct {
+	listeners []chan RequestResponse
+	mu        sync.Mutex
+}
+
+func NewProxyHandler() *Proxy {
+	return &Proxy{listeners: make([]chan RequestResponse, 0)}
+}
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var logMessage strings.Builder
@@ -156,4 +164,30 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, ioutil.NopCloser(bytes.NewBuffer(respBody)))
+}
+
+func (p *Proxy) Subscribe() <-chan RequestResponse {
+	c := make(chan RequestResponse, 1)
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.listeners = append(p.listeners, c)
+	return c
+}
+
+func (p *Proxy) dispatch(req *Request, resp *Response) {
+	rr := RequestResponse{req, resp}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for i := 0; i < len(p.listeners); i++ {
+		c := p.listeners[i]
+		select {
+		case c <- rr:
+			log.Debugf("request & response sent to listener %d", i)
+		case <-time.After(time.Second):
+			log.Warnf("timed out sending request & response to listener %d, closing and unsubscribing", i)
+			p.listeners = append(p.listeners[:i], p.listeners[i+1:]...)
+			i--
+			close(c)
+		}
+	}
 }
