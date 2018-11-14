@@ -46,16 +46,19 @@ func main() {
 
 	var g errgroup.Group
 
+	proxy := NewProxyHandler()
+	proxyServer.Addr = ":8080"
+	proxyServer.Handler = proxy
+
+	apiServer.Addr = ":8081"
+	apiServer.Handler = NewAPIHandler(proxy)
+
 	g.Go(func() error {
-		proxyServer.Addr = ":8080"
-		proxyServer.Handler = NewProxyHandler()
 		err := proxyServer.ListenAndServe()
 		return err
 	})
 
 	g.Go(func() error {
-		apiServer.Addr = ":8081"
-		apiServer.Handler = NewAPIHandler()
 		err := apiServer.ListenAndServe()
 		return err
 	})

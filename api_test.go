@@ -8,12 +8,13 @@ import (
 	"testing"
 )
 
-func TestHandleListRequests(t *testing.T) {
+func TestAPIServeHTTP(t *testing.T) {
+	api := &APIServer{}
 	{
 		req := httptest.NewRequest(http.MethodGet, "/requests", nil)
 		recorder := httptest.NewRecorder()
 
-		HandleListRequests(recorder, req)
+		api.ServeHTTP(recorder, req)
 
 		if recorder.Code != http.StatusOK {
 			t.Fatalf("expected %d, got %d", http.StatusOK, recorder.Code)
@@ -34,7 +35,7 @@ func TestHandleListRequests(t *testing.T) {
 		)
 		recorder := httptest.NewRecorder()
 
-		HandleListRequests(recorder, req)
+		api.ServeHTTP(recorder, req)
 
 		if recorder.Code != http.StatusOK {
 			t.Errorf("expected %d, got %d", http.StatusOK, recorder.Code)
@@ -54,7 +55,7 @@ func TestHandleListRequests(t *testing.T) {
 		)
 		recorder := httptest.NewRecorder()
 
-		HandleListRequests(recorder, req)
+		api.ServeHTTP(recorder, req)
 
 		if recorder.Code != http.StatusBadRequest {
 			t.Errorf("expected %d, got %d", http.StatusBadRequest, recorder.Code)
@@ -69,7 +70,7 @@ func TestHandleListRequests(t *testing.T) {
 		)
 		recorder := httptest.NewRecorder()
 
-		HandleListRequests(recorder, req)
+		api.ServeHTTP(recorder, req)
 
 		if recorder.Code != http.StatusBadRequest {
 			t.Errorf("expected %d, got %d", http.StatusBadRequest, recorder.Code)
@@ -84,7 +85,7 @@ func TestHandleListRequests(t *testing.T) {
 		)
 		recorder := httptest.NewRecorder()
 
-		HandleListRequests(recorder, req)
+		api.ServeHTTP(recorder, req)
 
 		if recorder.Code != http.StatusBadRequest {
 			t.Errorf("expected %d, got %d", http.StatusBadRequest, recorder.Code)
@@ -99,7 +100,7 @@ func TestHandleListRequests(t *testing.T) {
 		)
 		recorder := httptest.NewRecorder()
 
-		HandleListRequests(recorder, req)
+		api.ServeHTTP(recorder, req)
 
 		if recorder.Code != http.StatusMethodNotAllowed {
 			t.Errorf("expected %d, got %d", http.StatusMethodNotAllowed, recorder.Code)

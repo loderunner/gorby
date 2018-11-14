@@ -11,20 +11,22 @@ import (
 )
 
 type RequestResponse struct {
-	Request  *Request  `json:"request"`
-	Response *Response `json:"response"`
+	Request  *Request  `json:"request,omitempty"`
+	Response *Response `json:"response,omitempty"`
 }
 
-type APIServer struct{}
+type APIServer struct {
+	subscriber Subscriber
+}
 
-func NewAPIHandler() http.Handler {
+func NewAPIHandler(s Subscriber) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/requests", HandleListRequests)
+	mux.Handle("/requests", &APIServer{subscriber: s})
 
 	return mux
 }
 
-func HandleListRequests(w http.ResponseWriter, req *http.Request) {
+func (api *APIServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var err error
 
 	if req.Method != http.MethodGet {
@@ -105,7 +107,7 @@ func HandleListRequests(w http.ResponseWriter, req *http.Request) {
 
 	if accept == "text/event-stream" {
 		flusher.Flush()
-		HandleStreamRequests(w, req, flusher, requestResponses)
+		api.HandleStreamRequests(w, req, flusher, requestResponses)
 	} else {
 		b, err := json.Marshal(requestResponses)
 		if err != nil {
@@ -117,7 +119,7 @@ func HandleListRequests(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func HandleStreamRequests(w http.ResponseWriter, req *http.Request, f http.Flusher, requestResponses []RequestResponse) {
+func (api *APIServer) HandleStreamRequests(w http.ResponseWriter, req *http.Request, f http.Flusher, requestResponses []RequestResponse) {
 	log.Debugf("handling server-sent event stream")
 
 	closer, ok := w.(http.CloseNotifier)
@@ -138,14 +140,25 @@ func HandleStreamRequests(w http.ResponseWriter, req *http.Request, f http.Flush
 		f.Flush()
 	}
 
+	c := api.subscriber.Subscribe()
 	for {
 		select {
-		case t := <-time.Tick(3 * time.Second):
-			fmt.Fprintf(w, "data: %s\n\n", t.Format(time.RFC3339))
-			log.Debugf("sending timestamp event %s", t)
+		case rr, ok := <-c:
+			if !ok {
+				log.Debugf("closing stream to %s", req.RemoteAddr)
+				return
+			}
+			b, err := json.Marshal(rr)
+			if err != nil {
+				log.Errorf("couldn't marshal request and response: %s", err)
+				continue
+			}
+			w.Write([]byte("data:"))
+			w.Write(b)
+			w.Write([]byte("\n\n"))
 			f.Flush()
 		case <-closer.CloseNotify():
-			log.Debugf("closing")
+			log.Debugf("closing stream to %s", req.RemoteAddr)
 			return
 		}
 	}
