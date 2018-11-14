@@ -112,6 +112,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if addErr != nil {
 		log.Errorf("error adding request: %s", addErr)
 	}
+	go p.dispatch(r, nil)
 
 	if req.Method == http.MethodConnect {
 		h, ok := w.(http.Hijacker)
@@ -154,6 +155,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if respErr != nil {
 		log.Errorf("error adding response: %s", respErr)
 	}
+	go p.dispatch(r, r2)
 
 	fmt.Fprintf(&logMessage, " - %s %d", resp.Status, resp.ContentLength)
 	for k, h := range resp.Header {
