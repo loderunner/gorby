@@ -102,13 +102,12 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	)
 
 	var r *Request
-	var reqID int64
 	reqBody, addErr := ioutil.ReadAll(req.Body)
 	if addErr == nil {
 		r, addErr = NewRequest(reqTS, req, ioutil.NopCloser(bytes.NewBuffer(reqBody)))
 	}
 	if addErr == nil {
-		reqID, addErr = AddRequest(r)
+		r.ID, addErr = AddRequest(r)
 	}
 	if addErr != nil {
 		log.Errorf("error adding request: %s", addErr)
@@ -150,7 +149,7 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		r2, respErr = NewResponse(respTS, resp, ioutil.NopCloser(bytes.NewBuffer(respBody)))
 	}
 	if respErr == nil {
-		_, respErr = AddResponse(r2, reqID)
+		r2.ID, respErr = AddResponse(r2, r.ID)
 	}
 	if respErr != nil {
 		log.Errorf("error adding response: %s", respErr)

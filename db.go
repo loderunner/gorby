@@ -32,21 +32,21 @@ func initDB(path string) {
 	}
 }
 
-type nullTime struct {
-	time  time.Time
-	valid bool
+type NullTime struct {
+	Time  time.Time
+	Valid bool
 }
 
-func (nt *nullTime) Scan(value interface{}) error {
-	nt.time, nt.valid = value.(time.Time)
+func (nt *NullTime) Scan(value interface{}) error {
+	nt.Time, nt.Valid = value.(time.Time)
 	return nil
 }
 
-func (nt nullTime) Value() (driver.Value, error) {
-	if !nt.valid {
+func (nt NullTime) Value() (driver.Value, error) {
+	if !nt.Valid {
 		return nil, nil
 	}
-	return nt.time, nil
+	return nt.Time, nil
 }
 
 func AddRequest(req *Request) (int64, error) {
@@ -142,7 +142,7 @@ func ListRequests(start, end time.Time, limit int64) ([]*Request, []*Response, e
 
 		var reqID, respID sql.NullInt64
 		var reqHeader, reqTrailer, reqQuery, reqForm, respHeader, respTrailer, respForm []byte
-		var respTS nullTime
+		var respTS NullTime
 		var respProto, respStatus sql.NullString
 		var respStatusCode, respContentLength sql.NullInt64
 
@@ -176,6 +176,9 @@ func ListRequests(start, end time.Time, limit int64) ([]*Request, []*Response, e
 			continue
 		}
 
+		if reqID.Valid {
+			req.ID = reqID.Int64
+		}
 		if reqHeader != nil {
 			err = json.Unmarshal(reqHeader, &req.Header)
 			if err != nil {
@@ -203,8 +206,9 @@ func ListRequests(start, end time.Time, limit int64) ([]*Request, []*Response, e
 		reqs = append(reqs, &req)
 
 		if respID.Valid {
-			if respTS.valid {
-				resp.Timestamp = respTS.time
+			resp.ID = respID.Int64
+			if respTS.Valid {
+				resp.Timestamp = respTS.Time
 			} else {
 				log.Warningf("invalid response timestamp")
 				continue

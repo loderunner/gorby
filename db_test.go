@@ -94,6 +94,7 @@ func TestListRequests(t *testing.T) {
 	}
 
 	expectedReq := Request{
+		ID:            1,
 		Proto:         "HTTP/1.1",
 		Method:        http.MethodPost,
 		Host:          "example.com",
@@ -114,6 +115,7 @@ func TestListRequests(t *testing.T) {
 	}
 
 	expectedResp := Response{
+		ID:            1,
 		Proto:         "HTTP/1.1",
 		Status:        "200 OK",
 		StatusCode:    http.StatusOK,
@@ -138,7 +140,8 @@ func TestListRequestsWithoutResponse(t *testing.T) {
 
 	ts := time.Now()
 	req := newTestRequest(ts)
-	_, err := AddRequest(req)
+	var err error
+	req.ID, err = AddRequest(req)
 	if err != nil {
 		t.Fatalf("couldn't add request to DB: %s", err)
 	}

@@ -11,6 +11,7 @@ import (
 )
 
 type Response struct {
+	ID            int64               `json:"id"`
 	Timestamp     time.Time           `json:"timestamp"`
 	Proto         string              `json:"proto"`
 	Status        string              `json:"status"`
