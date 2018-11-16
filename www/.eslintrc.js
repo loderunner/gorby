@@ -15,7 +15,8 @@ module.exports = {
     'sort-imports': 'error',
     'no-var': 'error',
     'prefer-const': 'error',
-    'sort-imports': 'off'
+    'sort-imports': 'off',
+    "space-before-function-paren": ["error", "never"],
   },
   parserOptions: {
     parser: 'babel-eslint'
