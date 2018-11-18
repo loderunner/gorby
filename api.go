@@ -34,6 +34,8 @@ func (api *APIServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	var flusher http.Flusher
 	accept := req.Header.Get("Accept")
 	if accept == "text/event-stream" {
