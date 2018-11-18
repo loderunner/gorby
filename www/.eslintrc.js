@@ -1,8 +1,6 @@
 module.exports = {
   root: true,
-  env: {
-    node: true
-  },
+  env: {node: true},
   extends: ['plugin:vue/essential'],
   rules: {
     // allow async-await
@@ -12,13 +10,14 @@ module.exports = {
     'semi': ['error', 'never'],
     'no-extra-semi': 'error',
     'quotes': ['error', 'single'],
-    'sort-imports': 'error',
+    'brace-style': 'error',
     'no-var': 'error',
     'prefer-const': 'error',
     'sort-imports': 'off',
-    "space-before-function-paren": ["error", "never"],
+    'space-before-function-paren': ['error', 'never'],
+    'object-curly-spacing': ['error', 'always'],
+    'object-property-newline':
+        ['error', {'allowAllPropertiesOnSameLine': true}],
   },
-  parserOptions: {
-    parser: 'babel-eslint'
-  }
+  parserOptions: {parser: 'babel-eslint'}
 };
