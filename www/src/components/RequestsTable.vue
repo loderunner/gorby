@@ -1,5 +1,5 @@
 <template>
-  <b-table :data="requests" :selected.sync="selected" narrowed hoverable>
+  <b-table :data="requests.toArray()" :selected.sync="selected" narrowed hoverable>
     <template slot-scope="props">
       <b-table-column field="id" label="ID" numeric>{{ props.row.id }}</b-table-column>
       <b-table-column

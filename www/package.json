@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "buefy": "^0.7.0",
+    "collections": "^5.1.6",
     "vue": "^2.5.2",
     "vue-moment": "^4.0.0",
     "vue-router": "^3.0.1",

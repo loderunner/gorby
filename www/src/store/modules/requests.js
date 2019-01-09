@@ -1,5 +1,6 @@
 import { fetch } from 'whatwg-fetch'
 import moment from 'vue-moment'
+import SortedArraySet from 'collections/sorted-array-set'
 
 // Constants
 const ActionListRequests = 'listRequests'
@@ -61,7 +62,11 @@ const actions = {
 }
 
 // State
-const requests = []
+const requests = new SortedArraySet(
+  [],
+  (l, r) => l.id === r.id,
+  (l, r) => l.id - r.id
+)
 
 let listener = null
 
@@ -76,7 +81,7 @@ const mutations = {
     state = requests.map(({ request, response }) => ({ ...request, response }))
   },
   [MutationReceiveRequest]: (state, { request }) => {
-    state.push(request)
+    state.add(request)
   }
 }
 
