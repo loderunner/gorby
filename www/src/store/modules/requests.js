@@ -49,7 +49,7 @@ const actions = {
       listener.onmessage = (evt) => {
         try {
           const data = JSON.parse(evt.data)
-          commit(MutationReceiveRequest, { request: data.request })
+          commit(MutationReceiveRequest, { ...data })
         } catch (err) {
           console.error(err)
         }
@@ -80,8 +80,8 @@ const mutations = {
   [MutationReceiveRequestsList]: (state, { requests }) => {
     state = requests.map(({ request, response }) => ({ ...request, response }))
   },
-  [MutationReceiveRequest]: (state, { request }) => {
-    state.add(request)
+  [MutationReceiveRequest]: (state, { request, response }) => {
+    state.add({ ...request, response })
   }
 }
 
