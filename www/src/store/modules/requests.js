@@ -72,7 +72,7 @@ let listener = null
 
 // Getters
 const getters = {
-  requests: state => state
+  requests: state => state.toArray()
 }
 
 // Mutations
