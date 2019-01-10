@@ -1,10 +1,22 @@
 <template>
-  <div class="loading-animation">
+  <div :class="{ 'loading-animation': true, 'centered': centered }">
     <div class="dot"></div>
     <div class="dot" style="animation-delay: 0.2s"></div>
     <div class="dot" style="animation-delay: 0.4s"></div>
   </div>
 </template>
+<script>
+export default {
+    name: 'LoadingAnimation',
+    props: {
+        centered: {
+            type: Boolean,
+            default: false
+        }
+    }
+}
+</script>
+
 <style lang="scss" scoped>
 .loading-animation {
   &:before {
@@ -12,8 +24,11 @@
   }
 
   display: flex;
-  justify-content: flex-start;
   align-items: center;
+}
+
+.centered {
+  justify-content: center;
 }
 
 @keyframes fade {
