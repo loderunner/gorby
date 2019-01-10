@@ -7,9 +7,15 @@
         label="Time"
       >{{ props.row.timestamp | moment('HH:mm:ss.SSS') }}</b-table-column>
       <b-table-column field="host" label="Host">{{ props.row.host }}</b-table-column>
-      <b-table-column field="path" label="Path" width="70000">{{ props.row.path }}</b-table-column>
+      <b-table-column field="path" label="Path">{{ props.row.path }}</b-table-column>
       <b-table-column field="status" label="Status">
-        <LoadingAnimation/>
+        <LoadingAnimation v-if="!(props.row.response)"/>
+        <b-tooltip :label="props.row.response.status" v-else>{{ props.row.response.status_code }}</b-tooltip>
+      </b-table-column>
+      <b-table-column field="size" label="Size">
+        <span
+          v-if="!!(props.row.response)"
+        >{{ props.row.response.content_length | numeralFormat('0.[0] b') }}</span>
       </b-table-column>
     </template>
   </b-table>

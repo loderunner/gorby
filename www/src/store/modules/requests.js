@@ -81,6 +81,7 @@ const mutations = {
     state = requests.map(({ request, response }) => ({ ...request, response }))
   },
   [MutationReceiveRequest]: (state, { request, response }) => {
+    state.delete(request)
     state.add({ ...request, response })
   }
 }
