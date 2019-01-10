@@ -8,7 +8,7 @@ import store from './store'
 
 
 Vue.use(Buefy)
-Vue.use(VueNumerals)
+Vue.use(VueNumerals, { locale: 'en' })
 Vue.use(Moment)
 
 
