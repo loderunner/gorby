@@ -377,7 +377,7 @@ AS
            res.status_code,
 		   res.header,
 		   res.content_length,
-           res.body,
+           CASE WHEN LENGTH(res.body) < 2*1024*1024 THEN res.body ELSE NULL END,
 		   res.trailer,
 		   res.form
       FROM request AS req
