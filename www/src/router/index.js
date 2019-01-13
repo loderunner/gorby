@@ -1,13 +1,13 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import RequestsTable from '@/components/RequestsTable'
+import Requests from '@/views/Requests'
 
 Vue.use(Router)
 
 const routes = [{
   path: '/',
   name: 'Main',
-  component: RequestsTable
+  component: Requests
 }]
 
 export default new Router({

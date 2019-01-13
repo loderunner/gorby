@@ -24,8 +24,8 @@
 <script>
 import { Table } from 'buefy'
 import { mapGetters } from 'vuex'
-import LoadingAnimation from './LoadingAnimation'
-import Requests from '../store/modules/requests'
+import LoadingAnimation from '@/components/LoadingAnimation'
+import Requests from '@/store/modules/requests'
 
 export default {
   name: 'RequestsTable',

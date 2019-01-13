@@ -3,8 +3,8 @@ import App from './App'
 import Buefy from 'buefy'
 import VueNumerals from 'vue-numerals'
 import Moment from 'vue-moment'
-import router from './router'
-import store from './store'
+import router from '@/router'
+import store from '@/store'
 
 
 Vue.use(Buefy)
