@@ -10,13 +10,15 @@
     "unit": "jest --config test/unit/jest.conf.js --coverage",
     "test": "npm run unit",
     "lint": "eslint --ext .js,.vue src test/unit",
-    "build": "node build/build.js"
+    "build": "node build/build.js",
+    "watch": "node build/watch.js"
   },
   "dependencies": {
     "buefy": "^0.7.0",
     "collections": "^5.1.6",
     "vue": "^2.5.2",
     "vue-moment": "^4.0.0",
+    "vue-numerals": "^2.0.0",
     "vue-router": "^3.0.1",
     "vuex": "^3.0.1",
     "whatwg-fetch": "^3.0.0"
