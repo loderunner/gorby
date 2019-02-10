@@ -13,10 +13,6 @@ import (
 
 var db *sql.DB
 
-func init() {
-	initDB("/tmp/gorby.sqlite")
-}
-
 func initDB(path string) {
 	// Create an in-memory SQLite store
 	var err error

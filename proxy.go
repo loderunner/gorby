@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -33,11 +34,14 @@ func establishTunnel(req *http.Request, clientConn net.Conn) error {
 		serverConn.Close()
 	})
 
+	var tunnelClosed int32
+
 	forward := func(src, dst net.Conn) {
 		var err error
 		defer func() {
 			if err != net.ErrWriteToConnected {
 				log.Debugf("closing tunnel %s->%s", src.RemoteAddr(), dst.RemoteAddr())
+				atomic.StoreInt32(&tunnelClosed, 1)
 				src.Close()
 				dst.Close()
 			}
@@ -57,7 +61,10 @@ func establishTunnel(req *http.Request, clientConn net.Conn) error {
 				if err != nil {
 					if netErr, ok := err.(net.Error); ok {
 						if !netErr.Temporary() {
-							log.Errorf("network error: %s", err)
+							if !(atomic.LoadInt32(&tunnelClosed) != 0 &&
+								strings.Contains(netErr.Error(), "use of closed network connection")) {
+								log.Errorf("network error: %s", err)
+							}
 							return
 						}
 						log.Debugf("network error: %s", err)

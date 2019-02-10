@@ -37,7 +37,6 @@ func TestMain(m *testing.M) {
 }
 
 func setUp() {
-	db.Close()
 	initDB(testDBLocation)
 
 	fixturesSQL := `INSERT INTO request (id,timestamp,proto,method,host,path,header,content_length,body,trailer,query,form)
