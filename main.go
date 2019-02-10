@@ -6,15 +6,45 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/loderunner/popt"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 	"github.com/t-tomalak/logrus-easy-formatter"
 	"golang.org/x/sync/errgroup"
 )
 
 var proxyServer, apiServer http.Server
 
+func initConfiguration() error {
+	if err := popt.AddAndBindOptions(options, pflag.CommandLine); err != nil {
+		panic(err.Error())
+	}
+	pflag.CommandLine.SortFlags = false
+
+	pflag.Parse()
+
+	viper.SetConfigName("gorby")
+	confPathFlag := pflag.Lookup("conf")
+	if confPathFlag != nil && confPathFlag.Changed {
+		viper.SetConfigFile(confPathFlag.Value.String())
+	}
+	err := viper.ReadInConfig()
+	if err != nil && confPathFlag != nil && confPathFlag.Changed {
+		return err
+	}
+
+	return nil
+}
+
 func initLogger() {
-	log.SetLevel(log.DebugLevel)
+	if viper.GetBool("verbose") {
+		log.SetLevel(log.DebugLevel)
+	} else if viper.GetBool("quiet") {
+		log.SetLevel(log.PanicLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
 	log.SetOutput(os.Stdout)
 	log.SetFormatter(&easy.Formatter{
 		LogFormat: "%msg%\n",
@@ -41,6 +71,10 @@ func initSignals() {
 
 func main() {
 
+	err := initConfiguration()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	initLogger()
 	initSignals()
 
@@ -63,7 +97,7 @@ func main() {
 		return err
 	})
 
-	err := g.Wait()
+	err = g.Wait()
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatalf("fatal error: %s", err)
 	}
