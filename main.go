@@ -80,19 +80,23 @@ func main() {
 
 	var g errgroup.Group
 
+	initDB(viper.GetString("db"))
+
 	proxy := NewProxyHandler()
-	proxyServer.Addr = ":8080"
+	proxyServer.Addr = viper.GetString("address")
 	proxyServer.Handler = proxy
 
-	apiServer.Addr = ":8081"
+	apiServer.Addr = viper.GetString("api-address")
 	apiServer.Handler = NewAPIHandler(proxy)
 
 	g.Go(func() error {
+		log.Infof("starting HTTP proxy on %s", proxyServer.Addr)
 		err := proxyServer.ListenAndServe()
 		return err
 	})
 
 	g.Go(func() error {
+		log.Infof("starting API on %s", apiServer.Addr)
 		err := apiServer.ListenAndServe()
 		return err
 	})
